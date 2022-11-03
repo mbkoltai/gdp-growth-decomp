@@ -91,7 +91,7 @@ ggplot()  +
 
 ### ### ### ### ### ### ### ### ### ### 
 # productivity (output hour worked)
-labor_productivity_per_hour <- read_csv("oecd_lab_prod_usd_DP_LIVE_25092022185735341.csv") %>%
+labor_productivity_per_hour <- read_csv("oecd_lab_prod_usd_DP_LIVE_25092022154830342.csv") %>%
   # read_csv("labor-productivity-per-hour-PennWorldTable.csv") %>%
   filter(grepl(cntr_codes,LOCATION) & TIME>1950 & TIME<2020 ) %>% select(!c(`Flag Codes`,FREQUENCY,INDICATOR,SUBJECT)) %>%
   rename(country=LOCATION,lab_prod=Value,year=TIME) %>% 
@@ -153,13 +153,13 @@ summ_table_gdp_decomp %>% filter(!grepl("smooth",smoothing) & year>1975 & year<2
   pivot_longer(!c(country,year,smoothing))  %>%
 ggplot() + geom_line(aes(x=year,y=value,color=name,size=name %in% "comp_sums")) + 
   facet_wrap(~country,nrow=2,scales="free_y") + 
-  scale_size_manual(values=c(3/4,2),guide='none') + scale_color_manual(values=c("darkgrey","blue","black","red","green")) + 
+  scale_size_manual(values=c(3/4,2),guide='none') + scale_color_manual(values=c("darkgrey","blue","black","red","#006600")) + 
   scale_x_continuous(expand=expansion(0.01,0),breaks=seq(1985,2020,5)) +
   xlab("") + ylab("% change") + theme_bw() + standard_theme + 
   theme(legend.title=element_blank(),legend.position="top",strip.text=element_text(size=12),
         axis.text.x=element_text(size=11),axis.text.y=element_text(size=11))
 # save plot growth componets
-# ggsave("gdp_growth_comps_decompos.png",width=30,height=20,units="cm")
+# ggsave("plots/gdp_growth_comps_decompos.png",width=30,height=20,units="cm")
 
 # compare decomp sum vs data
 summ_table_gdp_decomp %>% filter(!grepl("smooth",smoothing) & year>1985 & year<2020) %>% 
@@ -173,7 +173,7 @@ ggplot(aes(x=year,y=value,color=name,size=grepl("decomp",name))) +
   xlab("") + ylab("% change") + scale_x_continuous(breaks=seq(1990,2020,5),expand=expansion(0,0.5)) + 
   theme_bw() + standard_theme + theme(legend.position="top",legend.title=element_blank(),strip.text=element_text(size=13)) # 
 #
-# ggsave("gdp_growth_comps_decompos_comparison.png",width=30,height=20,units="cm")
+ggsave("plots/gdp_growth_comps_employ_prod_decompos_comparison.png",width=30,height=20,units="cm")
 
 # scatterplot
 summ_table_gdp_decomp %>% filter(year>1990 & year<2020) %>%  # !grepl("smooth",smoothing) & 
@@ -182,11 +182,11 @@ ggplot(aes(x=gdp_growth_pct,y=comp_sums,color=country)) + geom_point(alpha=1/2) 
   facet_wrap(~smoothing,scales="free") + # scale_x_continuous(limits = c(-7.5,10)) +
   theme_bw() + standard_theme + theme(legend.position="top",legend.title=element_blank()) 
 #
-ggsave("gdp_growth_comps_decompos_scatter.png",width=30,height=20,units="cm")
+ggsave("plots/gdp_growth_comps_decompos_scatter.png",width=30,height=20,units="cm")
 
 # calc correlations
 summ_table_gdp_decomp %>% filter(year>1990 & year<2020) %>%  # !grepl("smooth",smoothing) & 
-  select(!c(workhours_change_pct,lab_prod_pct_growth,employment_growth_pct)) %>% 
+  select(!c(workhours_change_pct,lab_prod_pct_growth,employment_growth_pct)) %>%  filter(smoothing %in% "point") %>%
   group_by(country,smoothing) %>% summarise(cor(comp_sums,gdp_growth_pct,use = "complete.obs"))
 
 # deviations
@@ -231,16 +231,18 @@ for (k_per in 1:length(periods)) {
 }
 
 # bar plot for periods
-k_sel_metr=2; sel_metric=c("mean_share_gdp","mean")[k_sel_metr]
+# gdp=darkgrey, residual=grey, popul/employ=#006600, gdppp/labprod=red
+k_sel_metr=1; sel_metric=c("mean_share_gdp","mean")[k_sel_metr]
 df_eval_periods %>% 
   filter(smoothing %in% "point" & !grepl(c("comp|GDP","comp")[k_sel_metr],name) & metric_type %in% sel_metric)  %>%
 ggplot(aes(y=country,x=value,fill=name)) + geom_bar(stat="identity",position=position_dodge2(padding=0.15),size=1/4,color="black") + 
   facet_wrap(~period,scales = "free_x") + labs(fill="") + scale_y_discrete(expand=expansion(0.175,0)) +
   geom_hline(yintercept=(1:3)+1/2,size=1/2,linetype="dashed") + geom_vline(xintercept=0) +
   xlab(paste0("% contribution to GDP growth",ifelse(grepl("abs",sel_metric)," (absolute)"," (relative)"))) + ylab("") +
+  scale_fill_manual(values=list(c("blue","#006600","red","grey"),c("blue","#006600","red","grey","grey30"))[[k_sel_metr]]) + 
   theme_bw() + standard_theme + theme(legend.position="top",strip.text=element_text(size=14))
 # save
-ggsave(paste0(gsub("\\|","_",cntr_codes),"_growth_comps_",sel_metric,".png"),width=32,height=20,units="cm")
+ggsave(paste0("plots/",gsub("\\|","_",cntr_codes),"_growth_comps_",sel_metric,".png"),width=32,height=20,units="cm")
 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
 ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### ### 
@@ -295,6 +297,7 @@ ggplot(aes(y=country,x=value,fill=name)) +
   facet_wrap(~period) + labs(fill="") + scale_y_discrete(expand=expansion(0.175,0)) +
   geom_hline(yintercept=(1:3)+1/2,size=1/2,linetype="dashed") + geom_vline(xintercept=0) +
   xlab(paste0("% contribution to GDP growth",ifelse(!grepl("share",sel_metric)," (absolute)"," (relative)"))) + ylab("") +
+  scale_fill_manual(values=list(c("red","#006600","grey"),c("red","#006600","grey","grey30"))[[k_sel_metr]]) + 
   theme_bw() + standard_theme + theme(legend.position="top",strip.text=element_text(size=14))
 # save
-ggsave(paste0(gsub("\\|","_",cntr_codes),"_growth_comps_popul_gdppercap_",sel_metric,".png"),width=32,height=20,units="cm")
+ggsave(paste0("plots/",gsub("\\|","_",cntr_codes),"_growth_comps_popul_gdppercap_",sel_metric,".png"),width=32,height=20,units="cm")
